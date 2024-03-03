@@ -3,11 +3,17 @@ require('dotenv/config')
 
 // app & middleware setup
 const app = express();
+app.disable("X-Powered-By")
 app.use(require('cors')());
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }));
 
 // routes
+app.get("/", (req,res) => {
+    return res.status(200).json({
+        status: 200
+    })
+})
 app.use("/power", require('./routes/power'));
 
 // listener
