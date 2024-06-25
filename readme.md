@@ -6,6 +6,7 @@ Just a small web server I wrote for fun to control my PM2 containers on my homel
 git clone https://github.com/azpha/pmanager
 cd pmanager
 npm i
+npm start
 ```
 
 ## Configuration
@@ -16,7 +17,7 @@ You can setup Discord or Slack notifications for when a power action is performe
 
 ## Sending Power Notifications
 ```
-curl -d '{"action": "restart/stop/start", "script": "pm2-script-name"}' -h "Content-Type: application/json" -X POST http://your.domain/power/status?secret=yoursecret
+curl -d '{"action": "restart/stop/start", "script": "pm2-script-name"}' -h "Content-Type: application/json" -h "Authorization: {secret}" -X POST http://your.domain/power
 ```
 - action: the power action to perform, start/restart/stop
 - script: the name you gave your script in PM2
@@ -24,6 +25,6 @@ curl -d '{"action": "restart/stop/start", "script": "pm2-script-name"}' -h "Cont
 
 ## Seeing status of created scripts
 ```
-curl http://your.domain/power/status?script=script
+curl http://your.domain/info
 ```
 - script: optional parameter to only see the status of one script

@@ -1,4 +1,8 @@
-const BuildDiscordEmbed = function(scriptName, notificationType) {
+import type {
+    DiscordWebhookPayload
+} from './types';
+
+const BuildDiscordEmbed = function(scriptName: string, notificationType: "restarted" | "stopped") {
     if (!process.env.DISCORD_USERNAME) return false;
     const date = new Date()
 
@@ -13,16 +17,16 @@ const BuildDiscordEmbed = function(scriptName, notificationType) {
                 }
             }
         ]
-    }
+    } as DiscordWebhookPayload
 
     if (process.env.DISCORD_AVATAR) object["avatar_url"] = process.env.DISCORD_AVATAR_URL
     return object;
 }
-const BuildSlackEmbed = function(processObject) {
+// const BuildSlackEmbed = function(processObject) {
 
-}
+// }
 
-module.exports = {
+export default {
     BuildDiscordEmbed,
-    BuildSlackEmbed
+    // BuildSlackEmbed
 }
