@@ -1,3 +1,7 @@
+import type {
+    Request
+} from 'express';
+
 // Discord webhook types
 type DiscordWebhookPayload = {
     username: string,
@@ -31,8 +35,18 @@ type Script = {
     }
 }
 
+interface WebhookRequest extends Request {
+    webhook_payload?: {
+        repository: {
+            name: string,
+            full_name: string
+        }
+    }
+}
+
 export type {
     DiscordWebhookEmbed,
     DiscordWebhookPayload,
-    Script
+    Script,
+    WebhookRequest
 }

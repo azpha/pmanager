@@ -3,6 +3,6 @@ import PowerController from "../controllers/PowerController";
 import SecretValidation from "../utils/SecretValidation";
 
 const router = Router();
-router.post('/', SecretValidation.ValidateSecret, PowerController.PowerControl)
+router.post('/', SecretValidation.validateSecret, PowerController.PowerControl)
 
 export default router;

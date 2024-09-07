@@ -1,23 +1,33 @@
 import pm2 from 'pm2';
 import NotificationManager from '../services/NotificationManager';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import type { WebhookRequest } from '../utils/types';
 
 const PowerControl = async function(
-    req: Request,
+    req: WebhookRequest,
     res: Response
 ) {
-    if (
-        !req.body
-        || !req.body.script
-        || !req.body.action
-    ) {
-        return res.status(400).json({
-            status: 400,
-            message: "Invalid/missing body parameters"
-        })
+    const isFromGitHub = !!req.webhook_payload
+
+    if (isFromGitHub) {
+        if (!req.webhook_payload || !req.webhook_payload.repository.name) {
+            return res.status(400).json({
+                status: 400,
+                message: "Missing body parameters"
+            })
+        }
+    } else {
+        if (!req.body || !req.body.script || !req.body.action) {
+            return res.status(400).json({
+                status: 400,
+                message: "Missing body parameters"
+            })
+        }
     }
 
     try {
+        const scriptName = (req.body.script || req.webhook_payload?.repository.name);
+
         pm2.connect((err) => {
             if (err) {
                 return res.status(500).json({
@@ -32,19 +42,19 @@ const PowerControl = async function(
                             message: "Failed to fetch active scripts"
                         })
                     } else {
-                        if (proc.filter((v) => v.name === req.body.script).length <= 0) {
+                        if (proc.filter((v) => v.name === scriptName).length <= 0) {
                             return res.status(404).json({
                                 status: 404,
                                 message: "That script does not exist on the server"
                             })
                         } else {
-                            if (req.body.action === "restart" || req.body.action === "start") {
-                                pm2.restart(req.body.script, (err) => {
+                            if (req.body.action === "restart" || req.body.action === "start" || isFromGitHub) {
+                                pm2.restart(scriptName, (err) => {
                                     if (err) throw err
                                 });
                 
                                 if (process.env.NOTIFICATIONS_ENABLED) {
-                                    const sentNotif = await NotificationManager.SendNotification(req.body.script, "restarted")
+                                    const sentNotif = await NotificationManager.SendNotification(scriptName, "restarted")
                                     if (!sentNotif) console.log("Failed to send notification!")
                                 }
                             } else if (req.body.action === "stop") {
@@ -53,7 +63,7 @@ const PowerControl = async function(
                                 });
                 
                                 if (process.env.NOTIFICATIONS_ENABLED) {
-                                    const sentNotif = await NotificationManager.SendNotification(req.body.script, "stopped")
+                                    const sentNotif = await NotificationManager.SendNotification(scriptName, "stopped")
                                     if (!sentNotif) console.log("Failed to send notification!")
                                 }
                             } else {
