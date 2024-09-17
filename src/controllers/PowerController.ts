@@ -17,7 +17,7 @@ const PowerControl = async function(
             })
         }
     } else {
-        if (!req.body || !req.body.script || !req.body.action) {
+        if ((!req.body && !req.body.scripts && !req.body.action) && !req.query.scripts) {
             return res.status(400).json({
                 status: 400,
                 message: "Missing body parameters"
@@ -26,7 +26,7 @@ const PowerControl = async function(
     }
 
     try {
-        const scriptName = (req.body.script || req.webhook_payload?.repository.name);
+        const scriptNames = (req.body.script || req.query.scripts || req.webhook_payload?.repository.name);
 
         pm2.connect((err) => {
             if (err) {
@@ -42,42 +42,39 @@ const PowerControl = async function(
                             message: "Failed to fetch active scripts"
                         })
                     } else {
-                        if (proc.filter((v) => v.name === scriptName).length <= 0) {
-                            return res.status(404).json({
-                                status: 404,
-                                message: "That script does not exist on the server"
-                            })
-                        } else {
-                            if (req.body.action === "restart" || req.body.action === "start" || isFromGitHub) {
-                                pm2.restart(scriptName, (err) => {
-                                    if (err) throw err
-                                });
-                
-                                if (process.env.NOTIFICATIONS_ENABLED) {
-                                    const sentNotif = await NotificationManager.SendNotification(scriptName, "restarted")
-                                    if (!sentNotif) console.log("Failed to send notification!")
-                                }
-                            } else if (req.body.action === "stop") {
-                                pm2.stop(req.body.script, (err) => {
-                                    if (err) throw err
-                                });
-                
-                                if (process.env.NOTIFICATIONS_ENABLED) {
-                                    const sentNotif = await NotificationManager.SendNotification(scriptName, "stopped")
-                                    if (!sentNotif) console.log("Failed to send notification!")
-                                }
-                            } else {
-                                return res.status(400).json({
-                                    status: 400,
-                                    message: "Invalid body parameter supplied"
-                                })
-                            }
+                        let actionedScripts = [];
+                        for (const script of scriptNames.split(",")) {
+                            if (proc.filter((v) => v.name === script).length > 0) {
+                                if (req.body.action === "restart" || req.body.action === "start" || isFromGitHub) {
+                                    pm2.restart(script, (err) => {
+                                        if (err) throw err
+                                    });
+                    
+                                    if (process.env.NOTIFICATIONS_ENABLED) {
+                                        const sentNotif = await NotificationManager.SendNotification(script, "restarted")
+                                        if (!sentNotif) console.log("Failed to send notification!")
+                                    }
 
-                            return res.status(200).json({
-                                status: 200,
-                                message: "Successfully performed script action"
-                            })
+                                    actionedScripts.push(script);
+                                } else if (req.body.action === "stop") {
+                                    pm2.stop(script, (err) => {
+                                        if (err) throw err
+                                    });
+                    
+                                    if (process.env.NOTIFICATIONS_ENABLED) {
+                                        const sentNotif = await NotificationManager.SendNotification(script, "stopped")
+                                        if (!sentNotif) console.log("Failed to send notification!")
+                                    }
+
+                                    actionedScripts.push(script);
+                                }
+                            }
                         }
+
+                        return res.status(200).json({
+                            status: 200,
+                            actionedScripts
+                        })
                     }
                 })
             }
